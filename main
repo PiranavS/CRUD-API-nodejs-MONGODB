@@ -1,0 +1,41 @@
+var prompt = require('prompt');
+prompt.start();
+var MongoClient = require('mongodb').MongoClient;
+var connectionUrl = 'mongodb://localhost:27017',
+    sampleCollection = 'students';
+MongoClient.connect(connectionUrl, function(err, client) {
+  
+    var da= client.db('myproject')
+      
+    console.log("Connected correctly to server");
+    var flag=1;
+    
+    var collection= da.collection(sampleCollection)
+    var choice=1;
+    var student;
+while(flag==1)
+{
+
+    prompt.get(["name","department","age"],function(err,result){
+    student=[{
+        'Name':result.name,
+        'Department':result.department,
+        'Age':result.age
+    }];
+
+    collection.insertOne(student,function(error,result){
+        
+            console.log("Success :"+result.ops.length+" student inserted!");
+            
+});
+       
+});
+console.log("Do u want to continue (y/n)?");
+prompt.get(["choice"],function(err,res){
+    if(res.choice=='n')
+    flag=0;
+});
+
+}
+client.close();
+});
