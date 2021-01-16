@@ -13,7 +13,8 @@ app.get('/process_get', function (req, res) {
    response = {
       Name:req.query.name,
       Department:req.query.department,
-      Age:req.query.age
+      Age:req.query.age,
+      Rollno:req.query.rollno,
    };
    console.log(response);
    res.end(JSON.stringify(response));
@@ -23,23 +24,58 @@ app.get('/process_get', function (req, res) {
 
       console.log("Connected correctly to client");
       var db = client.db('mytestingdb');
-      var query = {name: response.name};
-      db.collection('students').find(query).toArray(function(erro,resu){
-          if(erro)
-          {
-      db.collection('students').insertOne(response,function(error,result){
-         if(error) 
-         throw error;
+      if(req.query.actions=='create')
+      {
+            db.collection('students').insertOne(response,function(error,result){
+            if(error) 
+            throw error;
+  
+            else
+            console.log("Success :"+result.ops.length+"   student inserted!");
+                 
+         });
+      }
 
-         else
-         console.log("Success :"+result.ops.length+" student inserted!");
-       });
-    }
-    else 
-    console.log("Record Already Found");
+      else if(req.query.actions=='read')
+      {
+         var query ={Rollno: response.Rollno};
+         db.collection('students').find(query).toArray(function(error,result){
+            if(error)
+            throw error;
 
-    client.close();
+            else
+            {
+               console.log(result)
+            }
+
+         });
+      }
+
+      else if(req.query.actions=='update')
+      {
+         var myquery = {Rollno: response.Rollno};
+         var newvalues = { $set:{response}};
+         db.collection("students").updateMany(myquery, newvalues, function(err, res) {
+    if (err) 
+    throw err;
+
+    console.log(res.result.nModified + " document(s) updated");
       });
+      }
+
+   else if(req.query.actions=="delete")
+   {
+      console.log("delete");
+      var query ={Rollno: response.rollno}
+      db.collection("students").deleteMany(query,function(err,obj){
+         if(err)
+         throw err;
+
+         console.log(obj.result.n+"documents deleted");
+      });
+
+   }
+    client.close();
 })
 })
 
