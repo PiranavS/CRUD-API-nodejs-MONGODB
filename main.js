@@ -1,7 +1,8 @@
 var express = require('express');
 var app = express();
-var MongoClient = require('mongodb').MongoClient;
+const mong = require('mongoose');
 var connectionUrl = 'mongodb://localhost';
+var stud = require('./stud_mod.js');
 
 app.use(express.static('public'));
 app.get('/index.htm', function (req, res) {
@@ -18,66 +19,63 @@ app.get('/process_get', function (req, res) {
    };
    console.log(response);
    res.end(JSON.stringify(response));
-   MongoClient.connect(connectionUrl, function(_err, client) {
-      if(_err)
-      throw _err;
 
-      console.log("Connected correctly to client");
-      var db = client.db('mytestingdb');
-      if(req.query.actions=='create')
-      {
-            db.collection('students').insertOne(response,function(error,result){
-            if(error) 
-            throw error;
-  
-            else
-            console.log("Success :"+result.ops.length+"   student inserted!");
-                 
-         });
-      }
+   mong.connect('mongodb://localhost:27017/test', {useNewUrlParser: true, useUnifiedTopology: true, autoIndex: false});
+   const db = mong.connection;
+   db.on('error', console.error.bind(console, 'connection error:'));
+   db.once('open', function() {
+      console.log("Connected with MONGODB");
+   });
 
-      else if(req.query.actions=='read')
-      {
-         var query ={Rollno: response.Rollno};
-         db.collection('students').find(query).toArray(function(error,result){
-            if(error)
-            throw error;
-
-            else
-            {
-               console.log(result)
+   if(req.query.action == "create"){
+         var new_stud = new stud({
+            name:req.query.name,
+            department:req.query.department,
+            age:req.query.age,
+            rollno:req.query.rollno
+         })
+         new_stud.save(function(err,result){
+            if (err){
+                console.log(err);
             }
+            else{
+                console.log("Inserted Successfully");
+            }
+         })
+   }
 
-         });
-      }
+   if(req.query.action == "delete"){
 
-      else if(req.query.actions=='update')
-      {
-         var myquery = {Rollno: response.Rollno};
-         var newvalues = { $set:{response}};
-         db.collection("students").updateMany(myquery, newvalues, function(err, res) {
-    if (err) 
-    throw err;
-
-    console.log(res.result.nModified + " document(s) updated");
-      });
-      }
-
-   else if(req.query.actions=="delete")
-   {
-      console.log("delete");
-      var query ={Rollno: response.rollno}
-      db.collection("students").deleteMany(query,function(err,obj){
-         if(err)
-         throw err;
-
-         console.log(obj.result.n+"documents deleted");
-      });
+      stud.deleteMany({rollno:req.query.rollno},function(err,ret){
+         if (err) return handleError(err);
+         console.log("Deleted "+ret.deletedCount+" records successfully");
+      })
 
    }
-    client.close();
-})
-})
+
+   if(req.query.action == "read"){
+
+      stud.find({rollno:req.query.rollno},function(err,data){
+         if (err) return handleError(err);
+         else{
+            console.log(data);
+         }
+      })
+   }
+
+   if(req.query.action == "update"){
+
+      stud.updateMany({rollno:req.query.rollno}, {$set: {name:req.query.name,department:req.query.department,age:req.query.age}},function(err,doc){
+         if (err) return handleError(err);
+         else{
+            console.log(doc.nModified +" documents updated");
+         }
+
+      })
+   }
+
+
+})  
 
 var server = app.listen(8081, function () {
    var host = server.address().address
